@@ -125,20 +125,21 @@
 <script>
     // **********************************
     // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
-    // MÃ NÀY DÙNG CÚ PHÁP ĐÚNG (ID NGẮN và /export) để KHẮC PHỤC LỖI CORS
+    // Đã quay lại cú pháp /pub VỚI ID DÀI và thêm tham số cache busting
     const GID = "1591875034"; // ID Trang tính của bạn
-    // ID Tài liệu ngắn (Lấy từ URL trình duyệt của bạn: image_87930c.png)
-    const DOC_ID = "10fuZqo17P59EIoM-3hQ0g0t-m7MirPG_YHZfi5M0qkVf"; 
+    // ID DÀI (Lấy từ URL Xuất bản lên web - Bắt đầu bằng 2PACX-...)
+    const DOC_ID_PUB = "2PACX-1vSUsGeVTqTWk-OiQJWRhB9oEEkqdKr19gb-SNsgwUpsC66DCBxa23KM137uujxquWHkpESnaChXtrlm"; 
     
+    // Thêm single=true để chỉ định 1 ô, output=tsv để lấy dữ liệu thô.
     const TABLE_CONFIG = [
         // Bàn Lỗ 1 sẽ đọc dữ liệu từ C2
-        { id: 0, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C2` }, 
+        { id: 0, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C2` }, 
         // Bàn Lỗ 2 sẽ đọc dữ liệu từ C3
-        { id: 1, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C3` }, 
+        { id: 1, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C3` }, 
         // Bàn Lỗ 3 sẽ đọc dữ liệu từ C4
-        { id: 2, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C4` }, 
+        { id: 2, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C4` }, 
         // Bàn Lỗ 4 sẽ đọc dữ liệu từ C5
-        { id: 3, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C5` }
+        { id: 3, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C5` }
     ];
     // **********************************
 
@@ -154,10 +155,13 @@
 
     // Hàm gọi dữ liệu từ Google Sheets cho TẤT CẢ 4 bàn
     async function fetchAllSheetsTime() {
-        const fetchPromises = timers.map(timer => 
-            fetch(timer.sheetUrl)
+        const fetchPromises = timers.map(timer => {
+            // Thêm timestamp để ngăn chặn caching trình duyệt và Google Sheets
+            const urlWithCacheBuster = `${timer.sheetUrl}&t=${Date.now()}`;
+            
+            return fetch(urlWithCacheBuster)
                 .then(response => {
-                    // Nếu thành công (không bị chặn CORS), response.ok là true
+                    // Nếu thành công (không bị chặn CORS hoặc 404), response.ok là true
                     if (!response.ok) throw new Error(`Lỗi bàn ${timer.id + 1}: ${response.status}`);
                     return response.text();
                 })
@@ -170,7 +174,7 @@
                     console.error(`Lỗi lấy dữ liệu cho Bàn ${timer.id + 1}:`, error);
                     return { timer, totalSeconds: -1 }; 
                 })
-        );
+        });
 
         const results = await Promise.all(fetchPromises);
         
