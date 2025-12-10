@@ -127,11 +127,11 @@
    <script>
         // **********************************
         // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
-        // Đã chuyển sang định dạng /export?format=tsv và dùng ID ngắn
+        // Đã chuyển sang định dạng /export?format=tsv (khắc phục lỗi CORS/Download)
         const GID = "1591875034"; // ID Trang tính của bạn
-        // ID Tài liệu ngắn (Lấy từ URL trình duyệt của bạn trong hình 87930c.png)
+        // ID Tài liệu ngắn (Lấy từ URL trình duyệt của bạn)
         const DOC_ID = "10fuZqo17P59EIoM-3hQ0g0t-m7MirPG_YHZfi5M0qkVf"; 
-        
+
         const TABLE_CONFIG = [
             // Bàn Lỗ 1 sẽ đọc dữ liệu từ C2
             { id: 0, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C2` }, 
@@ -159,13 +159,10 @@
             const fetchPromises = timers.map(timer => 
                 fetch(timer.sheetUrl)
                     .then(response => {
-                        // Nếu fetch bị chặn hoặc lỗi (do download), response.ok sẽ là false
                         if (!response.ok) throw new Error(`Lỗi bàn ${timer.id + 1}: ${response.status}`);
-                        // Đọc nội dung file dưới dạng TEXT
                         return response.text();
                     })
                     .then(text => {
-                        // Loại bỏ khoảng trắng và chuyển thành số
                         const totalSeconds = parseFloat(text.trim());
                         return { timer, totalSeconds };
                     })
@@ -176,7 +173,7 @@
             );
 
             const results = await Promise.all(fetchPromises);
-            
+
             results.forEach(({ timer, totalSeconds }) => {
                 if (totalSeconds === -1) {
                     timer.totalSecondsFromSheet = 0;
@@ -194,20 +191,22 @@
             });
         }
 
-        // Logic khởi động Timer (GIỮ NGUYÊN)
+        // ... (Phần code còn lại giữ nguyên) ...
+
+        // Logic khởi động Timer
         function startTimerLogic(timer, totalSeconds) {
             const durationMs = totalSeconds * 1000;
             timer.endTime = Date.now() + durationMs;
-            
+
             timer.domElement.classList.remove('status-inactive', 'status-warning', 'status-expired');
             timer.displayElement.classList.remove('blinking');
         }
 
-        // Hàm cập nhật tất cả các đồng hồ (GIỮ NGUYÊN)
+        // Hàm cập nhật tất cả các đồng hồ
         function updateAllTimers() {
             timers.forEach(timer => {
                 const now = Date.now();
-                
+
                 if (!timer.endTime || timer.totalSecondsFromSheet === 0) {
                     timer.domElement.className = 'timer-card status-inactive';
                     timer.displayElement.textContent = "00:00:00";
@@ -215,7 +214,7 @@
                 }
 
                 let timeLeftMs = timer.endTime - now;
-                
+
                 timer.domElement.classList.remove('status-inactive', 'status-playing', 'status-warning', 'status-expired');
                 timer.displayElement.classList.remove('blinking');
 
@@ -223,12 +222,12 @@
                     timeLeftMs = Math.abs(timeLeftMs); 
                     timer.domElement.classList.add('status-expired');
                     timer.displayElement.classList.add('blinking');
-                    
+
                     const timeString = formatTime(timeLeftMs);
                     timer.displayElement.textContent = "-" + timeString;
                     return;
                 } 
-                
+
                 if (timeLeftMs < FIVE_MINUTES_MS) {
                     timer.domElement.classList.add('status-warning');
                 } else {
@@ -240,7 +239,7 @@
             });
         }
 
-        // Hàm chuyển đổi mili giây sang HH:MM:SS (GIỮ NGUYÊN)
+        // Hàm chuyển đổi mili giây sang HH:MM:SS
         function formatTime(ms) {
             let totalSeconds = Math.floor(ms / 1000);
             const hours = Math.floor(totalSeconds / 3600);
@@ -252,7 +251,7 @@
             return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }
 
-        // Khởi tạo (GIỮ NGUYÊN)
+        // Khởi tạo
         fetchAllSheetsTime();
         setInterval(updateAllTimers, 1000); 
         setInterval(fetchAllSheetsTime, 5000); 
