@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bida Timer Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            color: #f0f0f0;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            width: 90%;
+        }
+
+        .timer-card {
+            background-color: #333;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            transform: scale(1.0);
+        }
+
+        .timer-card h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .timer-display {
+            font-size: 8em;
+            font-weight: bold;
+            color: #eee;
+            transition: color 0.3s ease;
+        }
+
+        /* Trạng thái */
+        .status-playing {
+            background-color: #4a4a4a;
+        }
+        .status-playing .timer-display {
+            color: #76ff03; /* Màu xanh lá sáng */
+        }
+        
+        .status-warning {
+            background-color: #ff9800; /* Cam */
+        }
+        .status-warning .timer-display {
+            color: #333;
+        }
+
+        .status-expired {
+            background-color: #f44336; /* Đỏ */
+        }
+        .status-expired .timer-display {
+            color: #fff;
+        }
+        
+        .status-inactive {
+             background-color: #333;
+        }
+        .status-inactive .timer-display {
+            color: #777;
+        }
+
+        /* Hiệu ứng nhấp nháy cho thời gian đã hết */
+        .blinking {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+        
+        /* Media Queries cho màn hình nhỏ hơn */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .timer-card h2 {
+                font-size: 1.5em;
+            }
+            .timer-display {
+                font-size: 5em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="timer-card status-inactive" id="table-0">
+        <h2>BÀN LỖ 1</h2>
+        <div class="timer-display">00:00:00</div>
+    </div>
+    <div class="timer-card status-inactive" id="table-1">
+        <h2>BÀN LỖ 2</h2>
+        <div class="timer-display">00:00:00</div>
+    </div>
+    <div class="timer-card status-inactive" id="table-2">
+        <h2>BÀN LỖ 3</h2>
+        <div class="timer-display">00:00:00</div>
+    </div>
+    <div class="timer-card status-inactive" id="table-3">
+        <h2>BÀN LỖ 4</h2>
+        <div class="timer-display">00:00:00</div>
+    </div>
+</div>
+
+<script>
+    // **********************************
+    // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
+    // MÃ NÀY DÙNG CÚ PHÁP ĐÚNG (ID NGẮN và /export) để KHẮC PHỤC LỖI CORS
+    const GID = "1591875034"; // ID Trang tính của bạn
+    // ID Tài liệu ngắn (Lấy từ URL trình duyệt của bạn: image_87930c.png)
+    const DOC_ID = "10fuZqo17P59EIoM-3hQ0g0t-m7MirPG_YHZfi5M0qkVf"; 
+    
+    const TABLE_CONFIG = [
+        // Bàn Lỗ 1 sẽ đọc dữ liệu từ C2
+        { id: 0, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C2` }, 
+        // Bàn Lỗ 2 sẽ đọc dữ liệu từ C3
+        { id: 1, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C3` }, 
+        // Bàn Lỗ 3 sẽ đọc dữ liệu từ C4
+        { id: 2, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C4` }, 
+        // Bàn Lỗ 4 sẽ đọc dữ liệu từ C5
+        { id: 3, sheetUrl: `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=C5` }
+    ];
+    // **********************************
+
+    const timers = TABLE_CONFIG.map(config => ({
+        ...config,
+        endTime: null,
+        totalSecondsFromSheet: 0,
+        domElement: document.getElementById(`table-${config.id}`),
+        displayElement: document.querySelector(`#table-${config.id} .timer-display`)
+    }));
+
+    const FIVE_MINUTES_MS = 300 * 1000;
+
+    // Hàm gọi dữ liệu từ Google Sheets cho TẤT CẢ 4 bàn
+    async function fetchAllSheetsTime() {
+        const fetchPromises = timers.map(timer => 
+            fetch(timer.sheetUrl)
+                .then(response => {
+                    // Nếu thành công (không bị chặn CORS), response.ok là true
+                    if (!response.ok) throw new Error(`Lỗi bàn ${timer.id + 1}: ${response.status}`);
+                    return response.text();
+                })
+                .then(text => {
+                    // Phân tích cú pháp giá trị số
+                    const totalSeconds = parseFloat(text.trim());
+                    return { timer, totalSeconds };
+                })
+                .catch(error => {
+                    console.error(`Lỗi lấy dữ liệu cho Bàn ${timer.id + 1}:`, error);
+                    return { timer, totalSeconds: -1 }; 
+                })
+        );
+
+        const results = await Promise.all(fetchPromises);
+        
+        results.forEach(({ timer, totalSeconds }) => {
+            if (totalSeconds === -1) {
+                timer.totalSecondsFromSheet = 0;
+                timer.endTime = null;
+                return;
+            }
+
+            if (totalSeconds > 0 && totalSeconds !== timer.totalSecondsFromSheet) {
+                timer.totalSecondsFromSheet = totalSeconds;
+                startTimerLogic(timer, totalSeconds);
+            } else if (totalSeconds <= 0 && timer.totalSecondsFromSheet !== 0) {
+                 timer.totalSecondsFromSheet = 0;
+                 timer.endTime = null;
+            }
+        });
+    }
+
+    // Logic khởi động Timer
+    function startTimerLogic(timer, totalSeconds) {
+        const durationMs = totalSeconds * 1000;
+        timer.endTime = Date.now() + durationMs;
+        
+        timer.domElement.classList.remove('status-inactive', 'status-warning', 'status-expired');
+        timer.displayElement.classList.remove('blinking');
+    }
+
+    // Hàm cập nhật tất cả các đồng hồ
+    function updateAllTimers() {
+        timers.forEach(timer => {
+            const now = Date.now();
+            
+            if (!timer.endTime || timer.totalSecondsFromSheet === 0) {
+                timer.domElement.className = 'timer-card status-inactive';
+                timer.displayElement.textContent = "00:00:00";
+                return;
+            }
+
+            let timeLeftMs = timer.endTime - now;
+            
+            timer.domElement.classList.remove('status-inactive', 'status-playing', 'status-warning', 'status-expired');
+            timer.displayElement.classList.remove('blinking');
+
+            if (timeLeftMs <= 0) {
+                timeLeftMs = Math.abs(timeLeftMs); 
+                timer.domElement.classList.add('status-expired');
+                timer.displayElement.classList.add('blinking');
+                
+                const timeString = formatTime(timeLeftMs);
+                timer.displayElement.textContent = "-" + timeString;
+                return;
+            } 
+            
+            if (timeLeftMs < FIVE_MINUTES_MS) {
+                timer.domElement.classList.add('status-warning');
+            } else {
+                timer.domElement.classList.add('status-playing');
+            }
+
+            const timeString = formatTime(timeLeftMs);
+            timer.displayElement.textContent = timeString;
+        });
+    }
+
+    // Hàm chuyển đổi mili giây sang HH:MM:SS
+    function formatTime(ms) {
+        let totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        totalSeconds %= 3600;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        const pad = (num) => num.toString().padStart(2, '0');
+        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    // Khởi tạo
+    fetchAllSheetsTime();
+    setInterval(updateAllTimers, 1000); 
+    setInterval(fetchAllSheetsTime, 5000); 
+</script>
+
+</body>
+</html>
