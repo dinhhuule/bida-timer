@@ -123,23 +123,26 @@
 </div>
 
 <script>
-   // **********************************
+    // **********************************
     // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
     // Đã dùng cú pháp /pub VỚI ID DÀI (2PACX-...)
-    const GID = "1591875034"; // ID Trang tính của bạn
-    // ID DÀI (Lấy từ URL Xuất bản lên web)
+    const GID = "1591875034"; // ID Trang tính của bạn (Đã xác nhận)
+    // ID DÀI (Đã xác nhận từ link xuất bản của bạn)
     const DOC_ID_PUB = "2PACX-1vSUsGeVTqTWk-OiQJWRhB9oEEkqdKr19gb-SNsgwUpsC66DCBxa23KM137uujxquWHkpESnaChXtrlm"; 
     
-    // Thêm single=true để chỉ định 1 ô, output=tsv để lấy dữ liệu thô.
+    // Định nghĩa URL cơ bản
+    const BASE_URL = `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=`;
+
+    // Định nghĩa cấu hình với URL hoàn chỉnh
     const TABLE_CONFIG = [
         // Bàn Lỗ 1 sẽ đọc dữ liệu từ C2
-        { id: 0, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C2` }, 
+        { id: 0, sheetUrl: `${BASE_URL}C2` }, 
         // Bàn Lỗ 2 sẽ đọc dữ liệu từ C3
-        { id: 1, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C3` }, 
+        { id: 1, sheetUrl: `${BASE_URL}C3` }, 
         // Bàn Lỗ 3 sẽ đọc dữ liệu từ C4
-        { id: 2, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C4` }, 
+        { id: 2, sheetUrl: `${BASE_URL}C4` }, 
         // Bàn Lỗ 4 sẽ đọc dữ liệu từ C5
-        { id: 3, sheetUrl: `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=C5` }
+        { id: 3, sheetUrl: `${BASE_URL}C5` }
     ];
     // **********************************
 
@@ -156,17 +159,15 @@
     // Hàm gọi dữ liệu từ Google Sheets cho TẤT CẢ 4 bàn
     async function fetchAllSheetsTime() {
         const fetchPromises = timers.map(timer => {
-            // Thêm timestamp để ngăn chặn caching trình duyệt và Google Sheets
+            // Thêm timestamp để ngăn chặn caching
             const urlWithCacheBuster = `${timer.sheetUrl}&t=${Date.now()}`;
             
             return fetch(urlWithCacheBuster)
                 .then(response => {
-                    // Nếu thành công (không bị chặn CORS hoặc 404), response.ok là true
                     if (!response.ok) throw new Error(`Lỗi bàn ${timer.id + 1}: ${response.status}`);
                     return response.text();
                 })
                 .then(text => {
-                    // Phân tích cú pháp giá trị số
                     const totalSeconds = parseFloat(text.trim());
                     return { timer, totalSeconds };
                 })
@@ -195,7 +196,6 @@
         });
     }
 
-    // Logic khởi động Timer
     function startTimerLogic(timer, totalSeconds) {
         const durationMs = totalSeconds * 1000;
         timer.endTime = Date.now() + durationMs;
@@ -204,7 +204,6 @@
         timer.displayElement.classList.remove('blinking');
     }
 
-    // Hàm cập nhật tất cả các đồng hồ
     function updateAllTimers() {
         timers.forEach(timer => {
             const now = Date.now();
@@ -241,7 +240,6 @@
         });
     }
 
-    // Hàm chuyển đổi mili giây sang HH:MM:SS
     function formatTime(ms) {
         let totalSeconds = Math.floor(ms / 1000);
         const hours = Math.floor(totalSeconds / 3600);
@@ -253,7 +251,6 @@
         return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     }
 
-    // Khởi tạo
     fetchAllSheetsTime();
     setInterval(updateAllTimers, 1000); 
     setInterval(fetchAllSheetsTime, 5000); 
@@ -261,4 +258,5 @@
 
 </body>
 </html>
+
 
