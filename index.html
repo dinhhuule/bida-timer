@@ -125,13 +125,14 @@
 <script>
     // **********************************
     // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
-    // Đã dùng cú pháp /pub VỚI ID DÀI (2PACX-...)
+    // Quay lại cú pháp /export VỚI ID NGẮN để vượt qua lỗi CORS
     const GID = "1591875034"; // ID Trang tính của bạn (Đã xác nhận)
-    // ID DÀI (Đã xác nhận từ link xuất bản của bạn)
-    const DOC_ID_PUB = "2PACX-1vSUsGeVTqTWk-OiQJWRhB9oEEkqdKr19gb-SNsgwUpsC66DCBxa23KM137uujxquWHkpESnaChXtrlm"; 
+    // ID NGẮN (Lấy từ URL khi chỉnh sửa, thường hoạt động tốt hơn với /export cho CORS)
+    const DOC_ID = "10fuZqo17P59EIoM-3hQ0g0t-m7MirPG_YHZfi5M0qkVf"; 
     
     // Định nghĩa URL cơ bản
-    const BASE_URL = `https://docs.google.com/spreadsheets/d/e/${DOC_ID_PUB}/pub?gid=${GID}&single=true&output=tsv&range=`;
+    // Dùng format=tsv thay vì output=tsv để tương thích với endpoint /export
+    const BASE_URL = `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=`;
 
     // Định nghĩa cấu hình với URL hoàn chỉnh
     const TABLE_CONFIG = [
@@ -156,10 +157,8 @@
 
     const FIVE_MINUTES_MS = 300 * 1000;
 
-    // Hàm gọi dữ liệu từ Google Sheets cho TẤT CẢ 4 bàn
     async function fetchAllSheetsTime() {
         const fetchPromises = timers.map(timer => {
-            // Thêm timestamp để ngăn chặn caching
             const urlWithCacheBuster = `${timer.sheetUrl}&t=${Date.now()}`;
             
             return fetch(urlWithCacheBuster)
@@ -258,5 +257,6 @@
 
 </body>
 </html>
+
 
 
