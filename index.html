@@ -124,26 +124,16 @@
 
 <script>
     // **********************************
-    // *** THAY ĐỔI 4 LIÊN KẾT NÀY ***
-    // Quay lại cú pháp /export VỚI ID NGẮN để vượt qua lỗi CORS
-    const GID = "1591875034"; // ID Trang tính của bạn (Đã xác nhận)
-    // ID NGẮN (Lấy từ URL khi chỉnh sửa, thường hoạt động tốt hơn với /export cho CORS)
-    const DOC_ID = "10fuZqo17P59EIoM-3hQ0g0t-m7MirPG_YHZfi5M0qkVf"; 
+    // *** SỬ DỤNG GOOGLE APPS SCRIPT ENDPOINT ***
+    // Thay thế toàn bộ URL dưới đây bằng URL Web App bạn vừa tạo (kết thúc bằng /exec)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOqPOjPFBbzkQi-cqOigS1fhDqURZysKU52WwSwjrCv3gAKolZNu2ktgErosjPrzsk/exec"; 
     
-    // Định nghĩa URL cơ bản
-    // Dùng format=tsv thay vì output=tsv để tương thích với endpoint /export
-    const BASE_URL = `https://docs.google.com/spreadsheets/d/${DOC_ID}/export?format=tsv&gid=${GID}&range=`;
-
-    // Định nghĩa cấu hình với URL hoàn chỉnh
+    // Định nghĩa cấu hình mới - Chỉ cần Range và URL cơ bản là đủ
     const TABLE_CONFIG = [
-        // Bàn Lỗ 1 sẽ đọc dữ liệu từ C2
-        { id: 0, sheetUrl: `${BASE_URL}C2` }, 
-        // Bàn Lỗ 2 sẽ đọc dữ liệu từ C3
-        { id: 1, sheetUrl: `${BASE_URL}C3` }, 
-        // Bàn Lỗ 3 sẽ đọc dữ liệu từ C4
-        { id: 2, sheetUrl: `${BASE_URL}C4` }, 
-        // Bàn Lỗ 4 sẽ đọc dữ liệu từ C5
-        { id: 3, sheetUrl: `${BASE_URL}C5` }
+        { id: 0, sheetUrl: `${APPS_SCRIPT_URL}?range=C2` }, 
+        { id: 1, sheetUrl: `${APPS_SCRIPT_URL}?range=C3` }, 
+        { id: 2, sheetUrl: `${APPS_SCRIPT_URL}?range=C4` }, 
+        { id: 3, sheetUrl: `${APPS_SCRIPT_URL}?range=C5` }
     ];
     // **********************************
 
@@ -159,6 +149,7 @@
 
     async function fetchAllSheetsTime() {
         const fetchPromises = timers.map(timer => {
+            // Thêm timestamp để ngăn chặn caching
             const urlWithCacheBuster = `${timer.sheetUrl}&t=${Date.now()}`;
             
             return fetch(urlWithCacheBuster)
@@ -257,6 +248,7 @@
 
 </body>
 </html>
+
 
 
 
